@@ -10,6 +10,22 @@ It is designed to show applied AI skills in a real operations setting:
 - user-facing product design
 - construction domain knowledge
 
+## App Preview
+
+Short demo recording: [View the demo video](assets/demo-recording.mp4)
+
+### Inspection Intake
+
+![Inspection intake](assets/screenshot-intake.png)
+
+### Safety Analysis Results
+
+![Safety analysis results](assets/screenshot-results.png)
+
+### Report Output
+
+![Report output](assets/screenshot-report.png)
+
 ## What It Does
 
 Upload a construction site image and provide light project context such as work activity and site notes. The app generates:
