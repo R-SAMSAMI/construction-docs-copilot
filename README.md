@@ -12,7 +12,11 @@ It is designed to show applied AI skills in a real operations setting:
 
 ## App Preview
 
-Short demo recording: [View the demo video](assets/demo-recording.mp4)
+Inline demo preview:
+
+![Demo preview](assets/demo-preview.gif)
+
+Full recording: [View the demo video](assets/demo-recording.mp4)
 
 ### Inspection Intake
 
