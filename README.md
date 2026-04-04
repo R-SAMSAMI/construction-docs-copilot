@@ -1,19 +1,12 @@
 # Construction Docs Copilot
 
-Construction Docs Copilot is a document intelligence portfolio project for uploading construction documents and asking grounded questions in plain English.
+Construction Docs Copilot is a document intelligence tool for construction teams. It helps users review project documents, ask plain-English questions, and generate grounded answers with supporting excerpts and report-ready outputs.
 
-It is designed to show applied AI skills in a practical operations setting:
-
-- document Q&A
-- grounded LLM answers
-- source-backed reasoning
-- report generation
-- user-facing product design
-- construction domain relevance
+It is designed for day-to-day document workflows involving safety manuals, specifications, method statements, procedures, and other operational references used by field and project teams.
 
 ## App Preview
 
-Portfolio preview:
+Product preview:
 
 ![Construction Docs Copilot preview](assets/demo-preview.gif)
 
@@ -35,61 +28,82 @@ Full recording: [View the demo video](assets/demo-recording.mp4)
 
 ![Report output](assets/screenshot-report.png)
 
-## What It Does
+## Product Purpose
 
-Upload a project document such as a safety manual, method statement, specification excerpt, or site instruction and ask a plain-English question. The app generates:
+Construction Docs Copilot helps construction teams work with document-heavy processes more efficiently. Instead of manually searching through long PDFs or procedures, users can upload a document, ask a focused question, and get a grounded answer tied back to the source text.
 
-- direct answer to the question
-- organized answer breakdown
-- supporting source excerpts
-- suggested follow-up questions
-- limitations and uncertainty notes
-- downloadable Markdown report
+The product is intended to support document review, field coordination, pre-task planning, safety communication, and operational decision support.
 
-## Demo Mode And Live Mode
+## Target Workflows
 
-The app supports two ways to run:
+- Reviewing safety manuals before work starts
+- Checking specifications and method statements during planning
+- Pulling key requirements from procedures or guidance documents
+- Summarizing long documents for field teams or supervisors
+- Preparing report-ready notes from document-based questions
+
+## Core Capabilities
+
+- Upload and process construction documents
+- Ask plain-English questions against uploaded source material
+- Generate grounded answers tied to extracted document text
+- Produce structured document summaries
+- Return supporting excerpts that explain the answer
+- Suggest follow-up questions for deeper review
+- Export a Markdown report for sharing or recordkeeping
+
+## Operating Modes
+
+The application supports two operating modes.
 
 ### Demo Mode
 
-Best for:
-
-- portfolio demos
-- recruiter walkthroughs
-- development without API cost
-- situations where billing or quota is not available
+Use Demo Mode to explore the interface and workflow without calling the OpenAI API.
 
 What it does:
 
 - does not call the OpenAI API
-- generates a realistic sample answer
-- lets you demonstrate the full product flow for free
+- generates a realistic sample response
+- allows the full UI and report flow to be tested without API usage
 
 ### Live API Mode
 
-Best for:
-
-- real document Q&A
-- testing grounded prompt workflows
-- validating the end-to-end AI experience
+Use Live API Mode to run document question answering against uploaded files.
 
 What it does:
 
-- extracts text from uploaded documents
-- sends the extracted document text and question to the OpenAI API
-- returns a structured answer with supporting excerpts
-- uses API credits
+- extracts text from the uploaded document
+- sends the extracted content and user question to the OpenAI API
+- returns a structured answer with summary, excerpts, and follow-up items
 
-## Why This Project Is Strong For AI Jobs
+## Supported File Types
 
-This repo demonstrates more than a generic chatbot. It shows:
+- PDF
+- DOCX
+- TXT
+- Markdown
 
-- retrieval-style document workflows
-- grounded answer design
-- practical enterprise AI patterns
-- prompt design for structured outputs
-- multimodal-ready product thinking for enterprise document use cases
-- a usable interface that can be discussed in interviews
+## Example Use Cases
+
+- "When must employers provide fall protection?"
+- "Summarize the key controls in this method statement."
+- "Which sections mention PPE, inspections, or work planning?"
+- "What should a supervisor review with the crew before starting work?"
+- "What does this document say about confined space entry requirements?"
+
+## How It Works
+
+1. Upload a supported construction document.
+2. Add optional project context.
+3. Ask a question in plain English.
+4. The system extracts document text and prepares a grounded response.
+5. The application returns:
+   - a direct answer
+   - a document summary
+   - supporting source excerpts
+   - follow-up questions
+   - limitations and uncertainty notes
+6. Users can download the generated response as a Markdown report.
 
 ## Tech Stack
 
@@ -98,14 +112,8 @@ This repo demonstrates more than a generic chatbot. It shows:
 - OpenAI Responses API
 - Pydantic
 - PyPDF
+- python-docx
 - python-dotenv
-
-## Supported File Types
-
-- PDF
-- DOCX
-- TXT
-- Markdown
 
 ## Project Structure
 
@@ -145,23 +153,6 @@ OPENAI_MODEL=gpt-4.1-mini
 streamlit run app.py
 ```
 
-## Recommended Usage
-
-### If you want a free demo
-
-1. Start the app
-2. Leave `Demo mode (no API cost)` turned on
-3. Upload a PDF, DOCX, TXT, or Markdown construction document
-4. Ask a realistic project question
-5. Walk through the grounded answer and source excerpts
-
-### If you want real AI answers
-
-1. Add a valid OpenAI API key to `.env`
-2. Make sure API billing is active
-3. Turn off Demo Mode in the sidebar
-4. Upload a supported document and ask a question
-
 ## Example Demo Flow
 
 Suggested demo file:
@@ -172,57 +163,39 @@ Suggested demo question:
 
 - `When must employers provide Fall Protection?`
 
-Strong expected outcome:
+Expected output:
 
-- summary of the OSHA document
-- direct answer describing the 6-foot rule
-- grounded excerpts tied to Subpart M
-- follow-up questions about systems, exceptions, and training
-
-## Example Questions
-
-- What are the fall protection requirements?
-- Summarize confined space controls.
-- Which sections mention PPE or scaffolding?
-- What inspections are required before starting work?
-
-## Portfolio Positioning
-
-This project can be described as:
-
-`A construction document intelligence copilot that answers questions from uploaded specs, safety manuals, and method statements using grounded AI outputs.`
-
-You can also position it on your resume as:
-
-- Built a document intelligence application for construction workflows using Streamlit, structured outputs, and grounded LLM prompting
-- Designed a recruiter-friendly demo mode and live API workflow for document Q&A against uploaded project files
-- Generated source-backed answers, follow-up questions, and report-ready summaries from construction documents in plain English
-
-## Notes
-
-- This tool is an AI-assisted document review, not a substitute for contract review, legal interpretation, or formal compliance review.
-- Output quality depends on the quality and clarity of the uploaded text.
-- Very large documents are clipped before sending to the model in this MVP version.
-- Demo Mode is useful for portfolio walkthroughs, but Live API Mode is what produces real grounded answers from the uploaded file.
+- a summary of the document
+- a direct grounded answer
+- supporting excerpts tied to the source text
+- follow-up questions for further review
 
 ## Demo File
 
-Use [examples/fall-prevention-demo.md](C:\Users\rsamsami\Documents\Playground\examples\fall-prevention-demo.md) if you want a ready-to-run sample document for portfolio demos.
+Use [examples/fall-prevention-demo.md](examples/fall-prevention-demo.md) if you want a ready-to-run sample document for testing the workflow.
 
-## Suggested Next Versions
+## Notes And Limitations
 
-### Version 1.1
+- This tool is designed to support document review, not replace formal compliance review, contract interpretation, or professional judgment.
+- Output quality depends on the clarity and extractability of the uploaded document.
+- Very large documents are clipped before being sent to the model in the current version.
+- Answers are only as complete as the extracted text provided to the model.
+- Demo Mode returns sample output and should not be treated as document-grounded analysis.
+
+## Roadmap
+
+### Near Term
 
 - add chunked retrieval instead of simple text clipping
-- support DOCX uploads
-- highlight matching sections more precisely
-- save question history per document
+- improve section-level citation precision
+- save question history for a document session
+- support stronger document comparison workflows
 
-### Version 2
+### Future
 
-- compare multiple project documents
-- add citation anchors to exact pages or clauses
-- support project-specific knowledge bases across many files
+- support multi-document querying across a project set
+- add page-level or clause-level citation anchors
+- add review workflows for submittals, specifications, and compliance checks
 
 ## Source Notes
 
