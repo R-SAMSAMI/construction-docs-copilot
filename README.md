@@ -1,30 +1,35 @@
-# Construction Safety Copilot
+# Construction Docs Copilot
 
-Construction Safety Copilot is a multimodal GenAI portfolio project for reviewing construction site photos and drafting a preliminary safety observation report.
+Construction Docs Copilot is a document intelligence portfolio project for uploading construction documents and asking grounded questions in plain English.
 
-It is designed to show applied AI skills in a real operations setting:
+It is designed to show applied AI skills in a practical operations setting:
 
-- image-based reasoning
-- structured hazard analysis
+- document Q&A
+- grounded LLM answers
+- source-backed reasoning
 - report generation
 - user-facing product design
-- construction domain knowledge
+- construction domain relevance
 
 ## App Preview
 
-Inline demo preview:
+Portfolio preview:
 
-![Demo preview](assets/demo-preview.gif)
+![Construction Docs Copilot preview](assets/demo-preview.gif)
 
 Full recording: [View the demo video](assets/demo-recording.mp4)
 
-### Inspection Intake
+### Document Intake
 
-![Inspection intake](assets/screenshot-intake.png)
+![Document intake](assets/screenshot-intake.png)
 
-### Safety Analysis Results
+### Grounded Answer Results
 
-![Safety analysis results](assets/screenshot-results.png)
+![Grounded answer results](assets/screenshot-results.png)
+
+### Supporting Excerpts
+
+![Supporting excerpts](assets/screenshot-excerpts.png)
 
 ### Report Output
 
@@ -32,19 +37,18 @@ Full recording: [View the demo video](assets/demo-recording.mp4)
 
 ## What It Does
 
-Upload a construction site image and provide light project context such as work activity and site notes. The app generates:
+Upload a project document such as a safety manual, method statement, specification excerpt, or site instruction and ask a plain-English question. The app generates:
 
-- overall site risk level
-- scene summary
-- likely hazards and recommended actions
-- PPE recommendations
-- supervisor follow-up questions
-- toolbox talk points
+- direct answer to the question
+- organized answer breakdown
+- supporting source excerpts
+- suggested follow-up questions
+- limitations and uncertainty notes
 - downloadable Markdown report
 
 ## Demo Mode And Live Mode
 
-The app now supports two ways to run:
+The app supports two ways to run:
 
 ### Demo Mode
 
@@ -58,31 +62,33 @@ Best for:
 What it does:
 
 - does not call the OpenAI API
-- generates a realistic sample safety analysis
+- generates a realistic sample answer
 - lets you demonstrate the full product flow for free
 
 ### Live API Mode
 
 Best for:
 
-- real image analysis
-- testing multimodal prompts
-- validating the end-to-end AI workflow
+- real document Q&A
+- testing grounded prompt workflows
+- validating the end-to-end AI experience
 
 What it does:
 
-- sends the uploaded image and notes to the OpenAI API
-- returns a structured safety observation from the model
+- extracts text from uploaded documents
+- sends the extracted document text and question to the OpenAI API
+- returns a structured answer with supporting excerpts
 - uses API credits
 
 ## Why This Project Is Strong For AI Jobs
 
-This repo shows more than experimentation in notebooks. It demonstrates:
+This repo demonstrates more than a generic chatbot. It shows:
 
-- multimodal AI product thinking
+- retrieval-style document workflows
+- grounded answer design
+- practical enterprise AI patterns
 - prompt design for structured outputs
-- a practical GenAI workflow
-- domain-specific reasoning in construction safety
+- multimodal-ready product thinking for enterprise document use cases
 - a usable interface that can be discussed in interviews
 
 ## Tech Stack
@@ -91,7 +97,15 @@ This repo shows more than experimentation in notebooks. It demonstrates:
 - Streamlit
 - OpenAI Responses API
 - Pydantic
+- PyPDF
 - python-dotenv
+
+## Supported File Types
+
+- PDF
+- DOCX
+- TXT
+- Markdown
 
 ## Project Structure
 
@@ -101,12 +115,9 @@ This repo shows more than experimentation in notebooks. It demonstrates:
 |-- requirements.txt
 |-- .env.example
 |-- README.md
-|-- examples
-|   |-- README.md
-|   |-- demo_case_01.md
-|   `-- demo_case_02.md
 `-- src
     |-- __init__.py
+    |-- document_utils.py
     |-- openai_client.py
     |-- reporting.py
     `-- schemas.py
@@ -140,61 +151,79 @@ streamlit run app.py
 
 1. Start the app
 2. Leave `Demo mode (no API cost)` turned on
-3. Upload a construction image
-4. Walk through the generated report as a product demo
+3. Upload a PDF, DOCX, TXT, or Markdown construction document
+4. Ask a realistic project question
+5. Walk through the grounded answer and source excerpts
 
-### If you want real AI analysis
+### If you want real AI answers
 
 1. Add a valid OpenAI API key to `.env`
 2. Make sure API billing is active
 3. Turn off Demo Mode in the sidebar
-4. Upload an image and run analysis
+4. Upload a supported document and ask a question
 
-## Example Demo Cases
+## Example Demo Flow
 
-The [examples/README.md](C:\Users\rsamsami\Documents\Playground\examples\README.md) file includes sample demo scenarios you can use in presentations.
+Suggested demo file:
 
-Included example outputs:
+- `Fall_Protection_Construction.pdf`
 
-- [demo_case_01.md](C:\Users\rsamsami\Documents\Playground\examples\demo_case_01.md)
-- [demo_case_02.md](C:\Users\rsamsami\Documents\Playground\examples\demo_case_02.md)
+Suggested demo question:
+
+- `When must employers provide Fall Protection?`
+
+Strong expected outcome:
+
+- summary of the OSHA document
+- direct answer describing the 6-foot rule
+- grounded excerpts tied to Subpart M
+- follow-up questions about systems, exceptions, and training
+
+## Example Questions
+
+- What are the fall protection requirements?
+- Summarize confined space controls.
+- Which sections mention PPE or scaffolding?
+- What inspections are required before starting work?
 
 ## Portfolio Positioning
 
 This project can be described as:
 
-`A multimodal AI copilot for construction site hazard review and safety reporting from images and field context.`
+`A construction document intelligence copilot that answers questions from uploaded specs, safety manuals, and method statements using grounded AI outputs.`
 
 You can also position it on your resume as:
 
-- Built a multimodal GenAI application for construction site safety review using Streamlit, structured outputs, and image-aware LLM prompting
-- Designed a low-cost demo mode and live API workflow to support product demos, development, and recruiter-facing portfolio presentation
-- Generated structured hazard summaries, PPE guidance, follow-up questions, and safety reports from jobsite images and notes
+- Built a document intelligence application for construction workflows using Streamlit, structured outputs, and grounded LLM prompting
+- Designed a recruiter-friendly demo mode and live API workflow for document Q&A against uploaded project files
+- Generated source-backed answers, follow-up questions, and report-ready summaries from construction documents in plain English
 
 ## Notes
 
-- This tool provides an AI-assisted preliminary observation, not a certified inspection.
-- The model may be uncertain when the image is blurry, incomplete, or lacks enough site context.
-- Demo Mode is useful when API quota is limited.
+- This tool is an AI-assisted document review, not a substitute for contract review, legal interpretation, or formal compliance review.
+- Output quality depends on the quality and clarity of the uploaded text.
+- Very large documents are clipped before sending to the model in this MVP version.
+- Demo Mode is useful for portfolio walkthroughs, but Live API Mode is what produces real grounded answers from the uploaded file.
+
+## Demo File
+
+Use [examples/fall-prevention-demo.md](C:\Users\rsamsami\Documents\Playground\examples\fall-prevention-demo.md) if you want a ready-to-run sample document for portfolio demos.
 
 ## Suggested Next Versions
 
 ### Version 1.1
 
-- add sample screenshots to the README
-- export polished PDF reports
-- add saved inspection history
-- improve risk tagging visuals
+- add chunked retrieval instead of simple text clipping
+- support DOCX uploads
+- highlight matching sections more precisely
+- save question history per document
 
 ### Version 2
 
-- add object detection overlays
-- map outputs to OSHA-style risk categories
-- compare observations across time
+- compare multiple project documents
+- add citation anchors to exact pages or clauses
+- support project-specific knowledge bases across many files
 
 ## Source Notes
 
-The implementation uses the OpenAI Responses API with image input and structured outputs. Official references:
-
-- [Images and vision](https://platform.openai.com/docs/guides/images-vision)
-- [Structured outputs](https://platform.openai.com/docs/guides/structured-outputs)
+The implementation uses the OpenAI Responses API with structured outputs and local document text extraction.

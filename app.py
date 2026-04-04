@@ -3,18 +3,23 @@ from __future__ import annotations
 import streamlit as st
 from dotenv import load_dotenv
 
+from src.document_utils import build_document_preview, clip_text_for_prompt, extract_document_text
 from src.openai_client import (
-    SafetyCopilotQuotaError,
-    analyze_site_image,
-    build_demo_analysis,
+    DocumentCopilotQuotaError,
+    answer_document_question,
+    build_demo_answer,
 )
 from src.reporting import build_markdown_report
 
 load_dotenv()
 
+
+def _friendly_document_error(exc: Exception) -> None:
+    st.error(str(exc))
+
 st.set_page_config(
-    page_title="Construction Safety Copilot",
-    page_icon=":building_construction:",
+    page_title="Construction Docs Copilot",
+    page_icon=":bookmark_tabs:",
     layout="wide",
 )
 
@@ -160,8 +165,8 @@ st.markdown(
         box-shadow: 0 10px 24px rgba(198, 90, 40, 0.22);
     }
 
-    .hazard-card {
-        background: rgba(255,255,255,0.6);
+    .source-card {
+        background: rgba(255,255,255,0.64);
         border: 1px solid var(--line);
         border-left: 6px solid var(--accent);
         border-radius: 20px;
@@ -169,7 +174,7 @@ st.markdown(
         margin-bottom: 0.8rem;
     }
 
-    .hazard-meta {
+    .source-meta {
         color: var(--muted);
         font-size: 0.92rem;
         margin-bottom: 0.4rem;
@@ -194,17 +199,17 @@ st.markdown(
 st.markdown(
     """
     <section class="hero">
-        <div class="eyebrow">Portfolio MVP | Multimodal GenAI for Construction</div>
-        <div class="hero-title">Construction Safety Copilot</div>
+            <div class="eyebrow">Portfolio MVP | Applied GenAI for Construction</div>
+        <div class="hero-title">Construction Docs Copilot</div>
         <div class="hero-copy">
-            Review a jobsite image, combine it with field context, and generate a structured safety
-            observation that feels useful to a superintendent, project manager, or safety lead.
+            Upload a spec, safety manual, or method statement, ask a plain-English question, and get a grounded
+            answer with supporting excerpts that feels useful to project engineers, supers, and safety teams.
         </div>
         <div class="chip-row">
-            <div class="chip">Image Understanding</div>
-            <div class="chip">Hazard Reasoning</div>
-            <div class="chip">PPE Guidance</div>
-            <div class="chip">Report Drafting</div>
+            <div class="chip">Document Q&A</div>
+            <div class="chip">Grounded Answers</div>
+            <div class="chip">Source Excerpts</div>
+            <div class="chip">Report Download</div>
         </div>
     </section>
     """,
@@ -214,168 +219,186 @@ st.markdown(
 with st.sidebar:
     st.header("Why This Demo Works")
     st.write(
-        "This version is built as a recruiter-friendly product demo, not just a notebook. "
-        "It turns a construction image into a practical safety observation workflow."
+        "This version carries the same product language as the safety app while showing a different AI workflow. "
+        "It turns a construction document into a practical grounded Q&A experience."
     )
     st.info(
-        "AI-assisted output only. Final site decisions should always be reviewed by a qualified safety professional."
+        "AI-assisted output only. Final compliance, contractual, and field decisions should always be verified against approved documents."
     )
     demo_mode = st.toggle("Demo mode (no API cost)", value=True)
     if demo_mode:
-        st.success("Demo mode is on. The app will generate a realistic sample analysis without calling the API.")
+        st.success("Demo mode is on. The app will generate a realistic answer without calling the API.")
     else:
         st.warning("Live API mode is on. This uses your OpenAI API credits.")
-    st.markdown("**Suggested demo inputs**")
-    st.write("- Active site with visible workers or equipment")
-    st.write("- Scaffold, ladder, trench, or roof work")
-    st.write("- Material storage or housekeeping concerns")
+    st.markdown("**Suggested demo questions**")
+    st.write("- What are the main safety requirements in this document?")
+    st.write("- Summarize the key controls the field team should follow.")
+    st.write("- Which sections mention PPE, inspections, or work planning?")
 
 input_col, preview_col = st.columns([1.05, 0.95], gap="large")
 
 with input_col:
     st.markdown('<div class="panel panel-strong">', unsafe_allow_html=True)
-    st.subheader("Inspection Intake")
-    st.caption("Add just enough context to make the analysis more credible and jobsite-specific.")
+    st.subheader("Document Intake")
+    st.caption("Upload one project document and ask a practical question in plain English.")
     uploaded_file = st.file_uploader(
-        "Upload a jobsite image",
-        type=["png", "jpg", "jpeg", "webp"],
+        "Upload a document",
+        type=["pdf", "docx", "txt", "md"],
+        help="Supports PDF, DOCX, TXT, and Markdown documents.",
     )
-    project_type = st.text_input(
-        "Project type",
-        placeholder="Commercial tower, bridge rehabilitation, roadway widening, residential framing...",
+    project_context = st.text_input(
+        "Project context",
+        placeholder="Hospital expansion, bridge rehabilitation, warehouse buildout, school renovation...",
     )
-    work_activity = st.text_input(
-        "Work activity",
-        placeholder="Excavation, concrete pour, facade work, steel erection, roofing...",
+    user_question = st.text_area(
+        "Question to ask",
+        placeholder="What are the main safety requirements in this document?",
+        height=130,
     )
-    notes = st.text_area(
-        "Additional notes",
-        placeholder="Crew size, weather, nearby traffic, temporary power, overhead work, subcontractor scope...",
-        height=150,
-    )
-    analyze_button = st.button("Analyze Site", type="primary", use_container_width=True)
+    ask_button = st.button("Ask Document", type="primary", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with preview_col:
     st.markdown('<div class="panel">', unsafe_allow_html=True)
-    st.subheader("Image Preview")
-    st.caption("A strong portfolio demo usually uses one sharp, realistic site image with clear activity.")
+    st.subheader("Document Summary")
+    st.caption("High-level orientation for the uploaded file and the latest generated summary.")
     if uploaded_file:
-        st.image(uploaded_file, caption=uploaded_file.name, use_container_width=True)
+        try:
+            extracted_preview_text = extract_document_text(uploaded_file.name, uploaded_file.getvalue())
+            preview_text = build_document_preview(extracted_preview_text)
+        except Exception as exc:
+            _friendly_document_error(exc)
+        else:
+            st.write(f"**File:** {uploaded_file.name}")
+            st.write(f"**File type:** {uploaded_file.name.split('.')[-1].upper()}")
+            st.write(f"**Extracted text length:** {len(extracted_preview_text):,} characters")
+            latest_summary = st.session_state.get("latest_document_summary")
+            latest_filename = st.session_state.get("latest_document_name")
+            if latest_summary and latest_filename == uploaded_file.name:
+                st.markdown("**Generated summary**")
+                st.write(latest_summary)
+            else:
+                st.markdown("**Preview snippet**")
+                st.code(preview_text or "No extractable text found in the uploaded document.", language="markdown")
     else:
         st.markdown(
             """
-            <div style="padding: 2.1rem 1rem; text-align: center; color: #5c665f; border: 1px dashed rgba(31,42,34,0.16); border-radius: 18px; background: rgba(255,255,255,0.35);">
-                Upload an image to preview it here and generate the safety observation.
+            <div style="padding: 2.1rem 1rem; text-align: center; color: #5f675e; border: 1px dashed rgba(31,41,35,0.16); border-radius: 18px; background: rgba(255,255,255,0.35);">
+                Upload a document and ask a question to see its generated summary here.
             </div>
             """,
             unsafe_allow_html=True,
         )
     st.markdown("</div>", unsafe_allow_html=True)
 
-if analyze_button:
+if ask_button:
     if not uploaded_file:
-        st.error("Please upload an image before running the safety analysis.")
+        st.error("Please upload a document before asking a question.")
+    elif not user_question.strip():
+        st.error("Please enter a question before running the document assistant.")
     else:
-        image_bytes = uploaded_file.getvalue()
-        with st.spinner("Reviewing the image and drafting the safety observation..."):
+        with st.spinner("Reading the document and preparing a grounded answer..."):
             try:
+                file_bytes = uploaded_file.getvalue()
+                extracted_text = extract_document_text(uploaded_file.name, file_bytes)
+                if not extracted_text:
+                    raise ValueError("No readable text could be extracted from this file.")
+
                 if demo_mode:
-                    analysis = build_demo_analysis(
-                        project_type=project_type,
-                        work_activity=work_activity,
-                        notes=notes,
+                    answer = build_demo_answer(
+                        filename=uploaded_file.name,
+                        question=user_question,
+                        project_context=project_context,
                     )
                 else:
-                    analysis = analyze_site_image(
-                        image_bytes=image_bytes,
+                    answer = answer_document_question(
                         filename=uploaded_file.name,
-                        project_type=project_type,
-                        work_activity=work_activity,
-                        notes=notes,
+                        extracted_text=clip_text_for_prompt(extracted_text),
+                        question=user_question,
+                        project_context=project_context,
                     )
+
                 report_markdown = build_markdown_report(
-                    analysis,
+                    answer,
                     filename=uploaded_file.name,
-                    project_type=project_type,
-                    work_activity=work_activity,
-                    notes=notes,
+                    project_context=project_context,
+                    question=user_question,
                 )
-            except SafetyCopilotQuotaError as exc:
+                st.session_state["latest_document_summary"] = answer.document_summary
+                st.session_state["latest_document_name"] = uploaded_file.name
+            except DocumentCopilotQuotaError as exc:
                 st.error(str(exc))
                 st.info(
                     "Tip: turn on Demo Mode in the sidebar to keep presenting the app without using API quota."
                 )
             except Exception as exc:
-                st.exception(exc)
+                _friendly_document_error(exc)
             else:
-                st.success("Demo analysis ready." if demo_mode else "Safety analysis ready.")
+                st.success("Demo answer ready." if demo_mode else "Document answer ready.")
 
                 top_left, top_mid, top_right = st.columns([2.4, 1, 1], gap="large")
                 with top_left:
                     st.markdown('<div class="panel">', unsafe_allow_html=True)
-                    st.subheader("Scene Summary")
+                    st.subheader("Direct Answer")
                     st.markdown(
-                        '<div class="section-note">High-level interpretation of the visible work environment.</div>',
+                        '<div class="section-note">Grounded response to the user question based on extracted document text.</div>',
                         unsafe_allow_html=True,
                     )
-                    st.write(analysis.scene_summary)
+                    st.write(answer.answer)
                     st.markdown("</div>", unsafe_allow_html=True)
                 with top_mid:
-                    st.metric("Overall Risk", analysis.overall_risk.title())
+                    st.metric("Confidence", answer.confidence.title())
                 with top_right:
-                    st.metric("Hazards Flagged", len(analysis.hazards))
+                    st.metric("Sources Used", len(answer.source_excerpts))
 
-                st.subheader("Detected Hazards")
+                st.subheader("Answer Breakdown")
                 st.markdown(
-                    '<div class="section-note">These are likely safety concerns inferred from the image and your notes. They should be reviewed by a human.</div>',
+                    '<div class="section-note">Organized explanation designed to feel useful to project teams instead of generic chatbot output.</div>',
                     unsafe_allow_html=True,
                 )
-                if analysis.hazards:
-                    for hazard in analysis.hazards:
+                for section in answer.answer_sections:
+                    st.markdown('<div class="panel">', unsafe_allow_html=True)
+                    st.markdown(f"### {section.heading}")
+                    st.write(section.body)
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                st.subheader("Supporting Excerpts")
+                st.markdown(
+                    '<div class="section-note">These source snippets are the grounding evidence for the answer.</div>',
+                    unsafe_allow_html=True,
+                )
+                if answer.source_excerpts:
+                    for excerpt in answer.source_excerpts:
                         st.markdown(
                             f"""
-                            <div class="hazard-card">
-                                <h4 style="margin: 0 0 0.35rem 0;">{hazard.title}</h4>
-                                <div class="hazard-meta">Category: {hazard.category} | Severity: {hazard.severity}</div>
-                                <div><strong>Evidence:</strong> {hazard.evidence}</div>
-                                <div style="margin-top: 0.45rem;"><strong>Recommended action:</strong> {hazard.recommendation}</div>
+                            <div class="source-card">
+                                <h4 style="margin: 0 0 0.35rem 0;">{excerpt.section_title}</h4>
+                                <div class="source-meta">Document support for the answer</div>
+                                <div><strong>Excerpt:</strong> {excerpt.excerpt}</div>
+                                <div style="margin-top: 0.45rem;"><strong>Why it matters:</strong> {excerpt.relevance}</div>
                             </div>
                             """,
                             unsafe_allow_html=True,
                         )
                 else:
-                    st.info("No clear hazards were identified from the provided image.")
+                    st.info("No supporting excerpts were returned.")
 
-                details_left, details_right = st.columns(2, gap="large")
-                with details_left:
-                    st.markdown('<div class="panel">', unsafe_allow_html=True)
-                    st.subheader("PPE Recommendations")
-                    for item in analysis.ppe_recommendations:
-                        st.write(f"- {item}")
-                    st.markdown("</div>", unsafe_allow_html=True)
-                with details_right:
-                    st.markdown('<div class="panel">', unsafe_allow_html=True)
-                    st.subheader("Supervisor Follow-Up")
-                    for item in analysis.supervisor_questions:
-                        st.write(f"- {item}")
-                    st.markdown("</div>", unsafe_allow_html=True)
-
-                lower_left, lower_right = st.columns([1.1, 0.9], gap="large")
+                lower_left, lower_right = st.columns(2, gap="large")
                 with lower_left:
                     st.markdown('<div class="panel">', unsafe_allow_html=True)
-                    st.subheader("Toolbox Talk Points")
-                    for item in analysis.toolbox_talk_points:
+                    st.subheader("Suggested Follow-Up")
+                    for item in answer.follow_up_questions:
                         st.write(f"- {item}")
                     st.markdown("</div>", unsafe_allow_html=True)
                 with lower_right:
                     st.markdown('<div class="panel">', unsafe_allow_html=True)
-                    st.subheader("Report Summary")
-                    st.write(analysis.report_summary)
+                    st.subheader("Limitations")
+                    for item in answer.limitations:
+                        st.write(f"- {item}")
                     st.download_button(
                         "Download Markdown Report",
                         data=report_markdown.encode("utf-8"),
-                        file_name="construction-safety-report.md",
+                        file_name="construction-document-answer.md",
                         mime="text/markdown",
                         use_container_width=True,
                     )

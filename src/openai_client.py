@@ -1,120 +1,112 @@
 from __future__ import annotations
 
-import base64
-import mimetypes
 import os
 
 from openai import OpenAI, RateLimitError
 
-from src.schemas import HazardItem, SafetyAnalysis
+from src.schemas import AnswerSection, DocumentAnswer, SourceExcerpt
 
 
-SYSTEM_PROMPT = """You identify visible construction safety concerns from one image and brief jobsite notes.
+SYSTEM_PROMPT = """You answer questions about construction documents using only the provided document excerpts.
 
 Rules:
-- Treat this as a preliminary observation, not a certified inspection.
-- Focus on the most important visible risks only.
-- Be specific, concise, and practical.
-- If the image is unclear, say so instead of guessing.
+- Ground every answer in the supplied document text.
+- Do not invent requirements, limits, or procedures that are not in the excerpts.
+- If the excerpts are insufficient, say so clearly and list what is missing.
+- Prefer concise, practical language suitable for field teams, project engineers, and safety staff.
+- When writing the document summary, mention the title, publication year, publisher or issuing body, intended use, and the main subjects covered whenever the text provides them.
 """
 
 
-class SafetyCopilotQuotaError(RuntimeError):
+class DocumentCopilotQuotaError(RuntimeError):
     """Raised when API quota or billing is unavailable."""
 
 
-def _to_data_url(image_bytes: bytes, filename: str) -> str:
-    mime_type = mimetypes.guess_type(filename)[0] or "image/jpeg"
-    encoded = base64.b64encode(image_bytes).decode("utf-8")
-    return f"data:{mime_type};base64,{encoded}"
+def build_demo_answer(*, filename: str, question: str, project_context: str) -> DocumentAnswer:
+    question_label = question or "Summarize key safety requirements."
+    context_label = project_context or "general building project"
 
-
-def _trim_notes(notes: str, max_chars: int = 240) -> str:
-    compact = " ".join((notes or "").split())
-    if len(compact) <= max_chars:
-        return compact or "Not provided"
-    return compact[: max_chars - 3] + "..."
-
-
-def build_demo_analysis(*, project_type: str, work_activity: str, notes: str) -> SafetyAnalysis:
-    project_label = project_type or "active construction site"
-    activity_label = work_activity or "general site work"
-    note_summary = _trim_notes(notes, max_chars=120)
-
-    return SafetyAnalysis(
-        overall_risk="medium",
-        scene_summary=(
-            f"Preliminary demo review for {project_label} during {activity_label}. "
-            "The scene should be checked for access control, PPE compliance, and housekeeping."
+    return DocumentAnswer(
+        document_summary=(
+            f"`{filename}` appears to be a construction-related reference document for {context_label}. "
+            "It is presented as a field-oriented guidance document and likely covers safety responsibilities, work planning, "
+            "control measures, inspections, and practical procedures that supervisors and crews can use before and during work. "
+            "In live mode, the summary should call out the document title, publication year, issuing organization, and the major topics included."
         ),
-        hazards=[
-            HazardItem(
-                category="ppe",
-                title="Possible missing or inconsistent PPE",
-                severity="medium",
-                evidence="The demo workflow assumes active field work where head, eye, and foot protection should be confirmed.",
-                recommendation="Verify all workers have task-appropriate PPE before continuing work.",
-            ),
-            HazardItem(
-                category="housekeeping",
-                title="Access and housekeeping need review",
-                severity="medium",
-                evidence="Construction areas often contain cords, materials, or debris that can obstruct safe movement.",
-                recommendation="Clear walking paths and organize materials to reduce trips and blocked access.",
-            ),
-            HazardItem(
-                category="pre-task planning",
-                title="Task-specific controls should be confirmed",
-                severity="low",
-                evidence=f"Notes provided: {note_summary}",
-                recommendation="Confirm the pre-task plan, crew briefing, and any permit or exclusion-zone requirements.",
-            ),
-        ],
-        ppe_recommendations=[
-            "Hard hat, high-visibility vest, safety boots, and safety glasses",
-            "Gloves matched to the task and material handling risk",
-            "Fall protection if work is occurring at height",
-        ],
-        supervisor_questions=[
-            "Has the crew completed a task-specific pre-job briefing today?",
-            "Are access routes, exclusion zones, and material staging areas clearly controlled?",
-            "Are any temporary power, overhead work, or mobile equipment interactions present?",
-        ],
-        toolbox_talk_points=[
-            "Maintain clear walking and working surfaces throughout the shift.",
-            "Stop work if PPE or access controls are missing or incomplete.",
-            "Reconfirm communication between crews, spotters, and equipment operators.",
-        ],
-        report_summary=(
-            f"Demo-mode site observation for {project_label}: review PPE compliance, housekeeping, and task controls "
-            f"for {activity_label}. This sample output is intended for product demonstration when live API analysis is unavailable."
+        answer=(
+            f"Demo answer for `{filename}`: the uploaded document appears to support a field-friendly review "
+            f"for {context_label}. For the question '{question_label}', the likely workflow is to identify the "
+            "relevant section, restate the requirement in plain English, and flag any missing details that still "
+            "need confirmation in the source document."
         ),
+        confidence="medium",
+        answer_sections=[
+            AnswerSection(
+                heading="Plain-English Summary",
+                body=(
+                    "The likely requirement should be restated as a short action-oriented explanation that a site "
+                    "team can use during planning, pre-task review, or document coordination."
+                ),
+            ),
+            AnswerSection(
+                heading="What To Verify",
+                body=(
+                    "Confirm whether the document section specifies thresholds, responsible parties, inspection "
+                    "frequency, required PPE, or approval steps before treating the answer as final."
+                ),
+            ),
+        ],
+        source_excerpts=[
+            SourceExcerpt(
+                section_title="Section 5.2 - Safety Controls",
+                excerpt=(
+                    "Workers shall review the applicable controls before starting the task and escalate unresolved "
+                    "questions to supervision."
+                ),
+                relevance="This excerpt supports the need for a pre-task review and escalation path.",
+            ),
+            SourceExcerpt(
+                section_title="Appendix A - Field Coordination",
+                excerpt=(
+                    "Where the document is unclear, the team should verify the latest approved method statement or "
+                    "project instruction."
+                ),
+                relevance="This excerpt supports calling out uncertainty instead of guessing.",
+            ),
+        ],
+        follow_up_questions=[
+            "Do you want a short summary, a compliance-focused answer, or a superintendent-friendly explanation?",
+            "Should I extract all sections related to PPE, fall protection, permits, or inspections?",
+            "Is there another project document I should compare against this one?",
+        ],
+        limitations=[
+            "This is demo output and is not based on live semantic retrieval from the uploaded file.",
+            "Exact thresholds, clause numbers, and project-specific requirements should be verified in the source document.",
+        ],
     )
 
 
-def analyze_site_image(
+def answer_document_question(
     *,
-    image_bytes: bytes,
     filename: str,
-    project_type: str,
-    work_activity: str,
-    notes: str,
-) -> SafetyAnalysis:
+    extracted_text: str,
+    question: str,
+    project_context: str,
+) -> DocumentAnswer:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("OPENAI_API_KEY is not set. Add it to your environment or .env file.")
 
     model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
     client = OpenAI(api_key=api_key)
-    image_data_url = _to_data_url(image_bytes, filename)
-    compact_notes = _trim_notes(notes)
 
     user_prompt = (
-        "Review this construction image and return a short structured safety observation.\n"
-        f"Project: {project_type or 'Not provided'}\n"
-        f"Activity: {work_activity or 'Not provided'}\n"
-        f"Notes: {compact_notes}\n"
-        "Limit hazards to the most important 3 items."
+        f"Document name: {filename}\n"
+        f"Project context: {project_context or 'Not provided'}\n"
+        f"User question: {question}\n\n"
+        "Document excerpts:\n"
+        f"{extracted_text}\n\n"
+        "Return a grounded answer using only the supplied text. Include a document summary that mentions the title, year, publisher or issuing body, and what the document covers whenever those details are present. Include source excerpts that support the answer."
     )
 
     try:
@@ -127,21 +119,18 @@ def analyze_site_image(
                 },
                 {
                     "role": "user",
-                    "content": [
-                        {"type": "input_text", "text": user_prompt},
-                        {"type": "input_image", "image_url": image_data_url},
-                    ],
+                    "content": [{"type": "input_text", "text": user_prompt}],
                 },
             ],
-            max_output_tokens=450,
-            text_format=SafetyAnalysis,
+            max_output_tokens=900,
+            text_format=DocumentAnswer,
         )
     except RateLimitError as exc:
-        raise SafetyCopilotQuotaError(
+        raise DocumentCopilotQuotaError(
             "OpenAI API quota is unavailable for this key. Check billing or switch to Demo Mode."
         ) from exc
 
     if response.output_parsed is None:
-        raise ValueError("The model did not return a structured safety analysis.")
+        raise ValueError("The model did not return a structured document answer.")
 
     return response.output_parsed

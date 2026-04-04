@@ -2,60 +2,60 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from src.schemas import SafetyAnalysis
+from src.schemas import DocumentAnswer
 
 
 def build_markdown_report(
-    analysis: SafetyAnalysis,
+    answer: DocumentAnswer,
     *,
     filename: str,
-    project_type: str,
-    work_activity: str,
-    notes: str,
+    project_context: str,
+    question: str,
 ) -> str:
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    hazard_lines = []
-    for index, hazard in enumerate(analysis.hazards, start=1):
-        hazard_lines.append(
-            "\n".join(
-                [
-                    f"{index}. {hazard.title} ({hazard.category}, severity: {hazard.severity})",
-                    f"   Evidence: {hazard.evidence}",
-                    f"   Action: {hazard.recommendation}",
-                ]
-            )
+    section_lines = [
+        f"### {section.heading}\n{section.body}" for section in answer.answer_sections
+    ]
+    excerpt_lines = [
+        "\n".join(
+            [
+                f"{index}. {excerpt.section_title}",
+                f"   Excerpt: {excerpt.excerpt}",
+                f"   Why it matters: {excerpt.relevance}",
+            ]
         )
+        for index, excerpt in enumerate(answer.source_excerpts, start=1)
+    ]
 
-    return f"""# Construction Safety Copilot Report
+    return f"""# Construction Document Q&A Report
 
 Generated: {timestamp}
-Image: {filename}
-Project type: {project_type or "Not provided"}
-Work activity: {work_activity or "Not provided"}
-Notes: {notes or "Not provided"}
+Document: {filename}
+Project context: {project_context or "Not provided"}
+Question: {question}
 
-## Overall Risk
-{analysis.overall_risk}
+## Direct Answer
+{answer.answer}
 
-## Scene Summary
-{analysis.scene_summary}
+## Document Summary
+{answer.document_summary}
 
-## Hazards
-{chr(10).join(hazard_lines) if hazard_lines else "No clear hazards identified from the provided image."}
+## Confidence
+{answer.confidence}
 
-## PPE Recommendations
-{chr(10).join(f"- {item}" for item in analysis.ppe_recommendations)}
+## Answer Breakdown
+{chr(10).join(section_lines) if section_lines else "No answer sections returned."}
 
-## Supervisor Follow-Up Questions
-{chr(10).join(f"- {item}" for item in analysis.supervisor_questions)}
+## Supporting Excerpts
+{chr(10).join(excerpt_lines) if excerpt_lines else "No supporting excerpts returned."}
 
-## Toolbox Talk Points
-{chr(10).join(f"- {item}" for item in analysis.toolbox_talk_points)}
+## Suggested Follow-Up Questions
+{chr(10).join(f"- {item}" for item in answer.follow_up_questions)}
 
-## Report Summary
-{analysis.report_summary}
+## Limitations
+{chr(10).join(f"- {item}" for item in answer.limitations)}
 
 ## Disclaimer
-This output is an AI-assisted preliminary observation and should be reviewed by a qualified safety professional before any jobsite decision is made.
+This output is an AI-assisted document review and should be verified against the latest approved project documents before making field or compliance decisions.
 """

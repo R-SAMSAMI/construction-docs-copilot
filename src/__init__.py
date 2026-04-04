@@ -1,1 +1,1 @@
-"""Construction Safety Copilot package."""
+"""Construction Docs Copilot package."""
