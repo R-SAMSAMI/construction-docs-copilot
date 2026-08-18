@@ -255,7 +255,7 @@ with input_col:
         placeholder="What are the main safety requirements in this document?",
         height=130,
     )
-    ask_button = st.button("Ask Document", type="primary", use_container_width=True)
+    ask_button = st.button("Ask Document", type="primary", width="stretch")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with preview_col:
@@ -400,7 +400,7 @@ if ask_button:
                         data=report_markdown.encode("utf-8"),
                         file_name="construction-document-answer.md",
                         mime="text/markdown",
-                        use_container_width=True,
+                        width="stretch",
                     )
                     st.markdown("</div>", unsafe_allow_html=True)
 
